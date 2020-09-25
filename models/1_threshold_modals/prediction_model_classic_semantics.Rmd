@@ -1,0 +1,271 @@
+---
+title: "might-possible-could models (classic semantics)"
+author: "Sebastian Schuster"
+date: "9/16/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+  knitr::opts_chunk$set(echo = TRUE)
+  library(data.table)
+  library(gridExtra)
+  library(tidyverse)
+  source("./../../../adaptation/experiments/0_pre_test/analysis/helpers.R")
+  
+  theme_set(theme_bw())
+  
+  all_modals = c("bare", "might",  "could", "think",  "probably",  "looks_like", "bare_not", "other", "possible", "likely")
+  modals_labels = c("bare", "might",  "could", "think",  "probably",  "looks like", "bare not", "other",  "possible", "likely")
+  colscale = scale_color_manual(
+    limits = modals_labels,
+    values = c(
+    "#E6AB02",
+    "#7CB637",
+    "#4C3B4D",
+    "#E7298A",
+    "#4381C1",
+    "#08415C",
+    "#FB3640",
+    "#999999",
+    "#9555A6",
+    "#2BE5F6"
+    )
+    )
+  
+      might_synonyms = c("might", "possible", "could")
+    probably_synonyms = c("probably", "likely")
+
+```
+
+## Experimental data and model predictions
+
+```{r load_data, echo=FALSE} 
+load_data_for_plotting = function(fname) {
+  
+  d = read.csv(fname)
+
+  d = d %>% 
+    mutate(modal1 = gsub('"', '', modal1), modal2=gsub('"', '', modal2), color = gsub('"', '', color)) %>% # remove quotes
+    unite(col="rating1", modal1, rating1, sep=":") %>% 
+    unite(col="rating2", modal2, rating2, sep=":") %>%
+    mutate(rating_other=paste("other", rating_other, sep=":")) %>%
+    pivot_longer(cols=starts_with("rating"), values_to="rating_tmp", names_to="col_name") %>%
+    separate(rating_tmp, c("modal", "rating"), sep=":") %>% # turn into long table format
+    mutate(rating = as.double(rating)) %>% 
+    mutate(percentage_blue=ifelse(color == "blue", percentage_blue, 100-percentage_blue)) %>%
+    mutate(modal = factor(modal, levels = all_modals, labels = modals_labels, ordered = TRUE)) %>%
+    mutate(modal_normalized = recode_factor(modal, possible = "might", could="might", likely="probably", .ordered = TRUE)) 
+  return(d)
+}
+
+ plot_posterior = function(modal1, modal2, exp_data, hdi_data) {
+
+     orig_cond_name = paste(modal1, modal2, sep="-")
+
+   
+     if (modal1 %in% might_synonyms) {
+       modal1 = "might"
+     }
+     if (modal2 %in% might_synonyms) {
+       modal2 = "might"
+     }
+     if (modal1 %in% probably_synonyms) {
+       modal1 = "probably"
+     }
+      if (modal2 %in% probably_synonyms) {
+       modal2 = "probably"
+     }
+
+     cond_name = paste(modal1, modal2, sep="-")
+
+     if (cond_name %in% c("probably-might", "might-bare", "might-bare_not", "probably-bare", "probably-bare_not")) {
+          cond_name = paste(modal2, modal1, sep="-")
+
+     }
+     
+     
+     if (modal2 == "might") {
+       modal2 = modal1
+       modal1 = "might"
+     }
+     
+     
+     pred_data = hdi_data %>% 
+       filter(cond == cond_name) %>%
+       group_by(percentage_blue, modal) %>%
+       summarise(rating_pred_m = mean(rating_pred), 
+                 ci_low_pred = quantile(rating_pred, 0.025), 
+                 ci_high_pred = quantile(rating_pred, 0.975)) %>%
+       mutate(modal = factor(modal, levels = all_modals, labels = modals_labels, ordered = TRUE)) %>%
+       mutate(modal_normalized = modal)
+      
+
+      exp_data = exp_data %>% 
+        group_by(percentage_blue, modal, modal_normalized) %>%
+        summarise(rating_m = mean(rating), ci_low = ci.low(rating), ci_high = ci.high(rating)) %>%
+        mutate(type ="exp")
+        
+      merged_data = merge(pred_data, exp_data, by=c("percentage_blue", "modal_normalized"))
+
+      model = lm(rating_pred_m ~ rating_m, data=merged_data)
+      cat(paste("R^2:", orig_cond_name, summary(model)$r.squared), "\n")
+      
+      pred_data2 = pred_data %>%
+        rename(rating_m = rating_pred_m, ci_high = ci_high_pred, ci_low = ci_low_pred) %>%
+        mutate(ci_low = rating_m - ci_low, ci_high = ci_high - rating_m, type="model")
+      
+      p = rbind(exp_data, pred_data2) %>%
+        ggplot(aes(x=percentage_blue, y=rating_m, col=modal, linetype=type)) + 
+        geom_point() + 
+        geom_line() + 
+        ggtitle(orig_cond_name) + 
+        geom_errorbar(aes(ymin=rating_m - ci_low, ymax= rating_m+ci_high, linetype="exp")) +
+        theme(legend.position="none") +
+        colscale 
+      
+      return(list(p_combined=p))
+
+  }
+
+```
+
+
+```{r call, echo=FALSE}
+
+  modals = c("bare", "might",    "probably", "could",   "looks_like", "think", "possible", "likely", "bare_not")
+  model_params_all = read.csv(file = "./runs/classic-semantics/mle_params.csv")
+ 
+
+  
+  
+
+
+
+
+
+
+
+```
+
+
+```{r fig1, fig.width=10, fig.height=10.625, echo=FALSE, warning=FALSE}
+
+  # create pairs corresponding to different condition numbers
+  pairs = combn(modals[1:6], 2)
+  pairs = cbind(pairs, rbind(rep("bare_not", 6), modals[1:6]))
+  pairs = cbind(pairs, rbind(rep("possible", 4), modals[1:4]))
+  pairs = cbind(pairs, rbind(rep("likely", 4), modals[1:4]))
+  pairs = cbind(pairs, rbind(rep("possible", 1), rep("likely", 1)))
+  pairs = cbind(pairs, rbind(rep("possible", 1), rep("bare_not", 1)))
+  pairs = cbind(pairs, rbind(rep("likely", 1), rep("bare_not", 1)))
+  
+  hdi_data = read.csv("./runs/classic-semantics/hdi_samples.csv")
+
+  get_grid_plot = function(cond) {
+    pair = pairs[,cond+1]
+    
+    modal1 = as.character(pair[1])
+    modal2 = as.character(pair[2])
+
+    # we don't want conditions with "think" or "looks like" for this experiment
+    if (modal1 == "think" || 
+        modal2 == "think" || 
+        modal1 == "looks_like" || 
+        modal2 == "looks_like" ||
+        all(c(modal1, modal2) %in% might_synonyms) ||
+        all(c(modal1, modal2) %in% probably_synonyms)) {
+      return (ggplot())
+    }
+    if (cond < 21) {
+        fname = paste("../../../adaptation/experiments/0_pre_test/data/0_pre_test-cond", 
+                      cond,
+                      "-trials.csv", 
+                      sep="")
+    } else {
+            fname = paste("../../../adaptation/experiments/13_additional_norming/data/13_additional_norming-cond", 
+                          cond, 
+                          "-trials.csv", 
+                          sep="")
+    }
+    p_data = load_data_for_plotting(fname)
+    post_plot = plot_posterior(modal1, modal2, p_data, hdi_data)
+    return(post_plot$p_combined + theme(legend.position="none", 
+                    axis.title.y=element_blank(), 
+                    axis.title.x=element_blank()))
+  }
+
+
+
+  plots = lapply(0:31, get_grid_plot)
+
+  fname = "../../../adaptation/experiments/0_pre_test/data/0_pre_test-cond5_2-trials.csv"
+  p_data = load_data_for_plotting(fname)
+  post_plot = plot_posterior("might", "probably", p_data, hdi_data)
+
+  btm_legend = extract_legend(post_plot$p_combined + theme(legend.position = "bottom"))
+  g1 = do.call("arrangeGrob", c(plots[c(1:3, 6,10,16:19, 22, 24,26)], ncol=3, left="utterance rating", bottom="event probability"))
+  grid.arrange(g1, btm_legend, heights=c(32, 2))
+```
+
+```{r fig.width=10, fig.height=5.125, echo=FALSE}
+  g2 = do.call("arrangeGrob", c(plots[c(27, 29:32)], ncol=3, left="utterance rating", bottom="event probability"))
+  grid.arrange(g2, btm_legend, heights=c(24, 2))
+```
+
+
+
+
+## Threshold distributions
+
+```{r fig2, fig.width=4.4, fig.height=4, echo=FALSE, results='asis'}
+d = data.table()
+
+  modals = c("bare", "might", "probably", "bare_not")
+
+for (modal in modals) {
+  alpha_param_name = paste("alpha", modal, sep="_")
+  beta_param_name = paste("beta", modal, sep="_")
+  
+  alpha_param = model_params_all[1,alpha_param_name]
+  beta_param = model_params_all[1,beta_param_name]
+
+  alpha_param_low = model_params_all[2,alpha_param_name]
+  beta_param_low = model_params_all[2,beta_param_name]
+
+  alpha_param_high = model_params_all[3,alpha_param_name]
+  beta_param_high = model_params_all[3,beta_param_name]
+
+      
+  x = seq(0.001,0.999,.001)
+  y = pbeta(x, alpha_param, beta_param)
+  y_low = pbeta(x, alpha_param_low, beta_param_low)
+  y_high = pbeta(x, alpha_param_high, beta_param_high)
+
+  
+  beta_density = data.frame(x = x, y = y, y_low = y_low, y_high=y_high, modal = modal)
+  d = rbind(d, beta_density)
+  
+}
+  
+   d_filtered = d %>% filter(modal %in% c("might", "possible", "could"))
+   d_points = d_filtered %>% filter( floor(x * 1000) %%  100 == 0 | x == 0.999 | x == 0.001)
+   d_filtered %>%
+    ggplot( aes(x=x, y=y, col=modal)) + 
+     geom_ribbon(aes(ymin=y_low, ymax=y_high, fill=modal), alpha=.4, size=0) +
+     geom_line() + 
+     ggtitle("might") + 
+     xlab("percentage") + 
+     theme(legend.position = "bottom")
+
+   d %>% filter(modal %in% c("probably", "likely")) %>%
+    ggplot( aes(x=x, y=y, col=modal)) + 
+     geom_ribbon(aes(ymin=y_low, ymax=y_high, fill=modal), alpha=.4, size=0) +
+     geom_line() + 
+     ggtitle("probably") + 
+     xlab("percentage") + 
+     theme(legend.position = "bottom")
+
+   
+
+```
+
