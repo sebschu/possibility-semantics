@@ -301,5 +301,133 @@ write.csv(x = rbind(final_params_mu, final_params_low, final_params_high),
 
 
 
+# shared semantics for possible and might
+
+d = convertData("./1_threshold_modals/runs/possible-might-shared-semantics/run1_output.json")
+d = reparam(d, modals = c("might", "bare", "probably", "bare_not"))
+c1 = tidy_sampleList(d, 2, 1, list())
+
+d = convertData("./1_threshold_modals/runs/possible-might-shared-semantics/run2_output.json")
+d = reparam(d, modals = c("might", "bare", "probably", "bare_not"))
+c2 = tidy_sampleList(d, 2, 2, list())
+
+
+mcmc_samples = rbind(c1,c2)
+
+# Check for convergence
+
+ggs_Rhat(mcmc_samples)
+
+final_params_all = mcmc_samples %>% 
+  group_by(Parameter) %>% 
+  summarise(med=median(value), 
+            mu = mean(value), 
+            low=quantile(value, 0.025), 
+            high=quantile(value, 0.975), 
+            sd_all=sd(value))
+final_params_mu = final_params_all %>% 
+  select(Parameter, mu) %>% 
+  spread(key=Parameter, value=mu) %>%
+  mutate(type = "mu")
+final_params_low = final_params_all %>% 
+  select(Parameter, low) %>% 
+  spread(key=Parameter, value=low) %>%
+  mutate(type = "low")
+final_params_high= final_params_all %>% 
+  select(Parameter, high) %>% 
+  spread(key=Parameter, value=high) %>%
+  mutate(type = "high")
+
+
+
+write.csv(x = rbind(final_params_mu, final_params_low, final_params_high),
+          file = "./1_threshold_modals/runs/possible-might-shared-semantics/mle_params.csv")
+
+
+# no near synonyms data + classic semantics
+
+d = convertData("./1_threshold_modals/runs/no-near-synonyms-classic-semantics/run1_output.json")
+d = reparam(d, modals = c("might", "bare", "probably", "bare_not"))
+c1 = tidy_sampleList(d, 2, 1, list())
+
+d = convertData("./1_threshold_modals/runs/no-near-synonyms-classic-semantics/run2_output.json")
+d = reparam(d, modals = c("might", "bare", "probably", "bare_not"))
+c2 = tidy_sampleList(d, 2, 2, list())
+
+
+mcmc_samples = rbind(c1,c2)
+
+# Check for convergence
+
+ggs_Rhat(mcmc_samples)
+
+final_params_all = mcmc_samples %>% 
+  group_by(Parameter) %>% 
+  summarise(med=median(value), 
+            mu = mean(value), 
+            low=quantile(value, 0.025), 
+            high=quantile(value, 0.975), 
+            sd_all=sd(value))
+final_params_mu = final_params_all %>% 
+  select(Parameter, mu) %>% 
+  spread(key=Parameter, value=mu) %>%
+  mutate(type = "mu")
+final_params_low = final_params_all %>% 
+  select(Parameter, low) %>% 
+  spread(key=Parameter, value=low) %>%
+  mutate(type = "low")
+final_params_high= final_params_all %>% 
+  select(Parameter, high) %>% 
+  spread(key=Parameter, value=high) %>%
+  mutate(type = "high")
+
+
+
+write.csv(x = rbind(final_params_mu, final_params_low, final_params_high),
+          file = "./1_threshold_modals/runs/no-near-synonyms-classic-semantics/mle_params.csv")
+
+
+# no near synonyms data + shared semantics for possible and might
+
+d = convertData("./1_threshold_modals/runs/no-near-synonyms-possible-might-shared-semantics/run1_output.json")
+d = reparam(d, modals = c("might", "bare", "probably", "bare_not"))
+c1 = tidy_sampleList(d, 2, 1, list())
+
+d = convertData("./1_threshold_modals/runs//no-near-synonyms-possible-might-shared-semantics/run2_output.json")
+d = reparam(d, modals = c("might", "bare", "probably", "bare_not"))
+c2 = tidy_sampleList(d, 2, 2, list())
+
+
+mcmc_samples = rbind(c1,c2)
+
+# Check for convergence
+
+ggs_Rhat(mcmc_samples)
+
+final_params_all = mcmc_samples %>% 
+  group_by(Parameter) %>% 
+  summarise(med=median(value), 
+            mu = mean(value), 
+            low=quantile(value, 0.025), 
+            high=quantile(value, 0.975), 
+            sd_all=sd(value))
+final_params_mu = final_params_all %>% 
+  select(Parameter, mu) %>% 
+  spread(key=Parameter, value=mu) %>%
+  mutate(type = "mu")
+final_params_low = final_params_all %>% 
+  select(Parameter, low) %>% 
+  spread(key=Parameter, value=low) %>%
+  mutate(type = "low")
+final_params_high= final_params_all %>% 
+  select(Parameter, high) %>% 
+  spread(key=Parameter, value=high) %>%
+  mutate(type = "high")
+
+
+
+write.csv(x = rbind(final_params_mu, final_params_low, final_params_high),
+          file = "./1_threshold_modals/runs//no-near-synonyms-possible-might-shared-semantics/mle_params.csv")
+
 
 

@@ -1,0 +1,187 @@
+---
+title: "Modeling summary"
+author: "Sebastian Schuster"
+date: "10/2/2020"
+output: html_document
+---
+
+## Model comparison
+
+**Models**:
+
+- *full*: each expression has parameters for threshold distributions; estimated on all data
+- *no near-synonyms estimation*: each expression has parameters for threshold distributions; estimated on all data except near-synonym conditions (e.g., *might-could*)
+
+- *classic semantics*: the sets {might, could, possible} and {probably, likely} each share parameters for threshold distributions; estimated on all data
+- *classic semantics, no near-synonyms estimation*: the sets {might, could, possible} and {probably, likely} each share parameters for threshold distributions; estimated on all data except near-synonym conditions (e.g., *might-could*)
+- *might=possible*: *might* and *possible* share parameters for threshold distributions; estimated on all data
+- *might=possible,  no near-synonyms estimation*: *might* and *possible* share parameters for threshold distributions; estimated on all data except near-synonym conditions (e.g., *might-could*)
+
+
+**Colums:**:
+
+* $R^2$ (all data): $R^2$ between mean model predictions and mean participant ratings for all conditions 
+* $R^2$ (no near-synonyms): $R^2$ between mean model predictions and mean participant ratings for all conditions except near-synonym conditions
+* rel. LogLik: log likelihood of data given the model,  relative to best model  
+
+
+
+
+| Model               | $R^2$ (all data) | $R^2$ (no near-synonyms) | rel. LogLik (all data) | rel. LogLik (no near-synonyms) |
+|---------------------|:----------------:|:------------------------:|:----------------------:|:------------------------------:|
+| [full](prediction_model_hdi.html)   | **0.941**  | 0.945 | **0**  | -22 |
+| [full, no near-synonyms estimation](prediction_model_no-synonyms.html)  |  0.940 | **0.947** | -28  | **0** |
+| [classic semantics](prediction_model_classic_semantics.html)  | 0.923 | 0.934 | -377  | -254 |
+| [classic semantics, no near-synonyms estimation](prediction_model_no-synonyms-classic-semantics.html)  | 0.923 | 0.935 | -392 | -240 |
+| [might=possible](prediction_model_might-possible-shared.html)  | 0.940  | 0.944 | -32  | -54 |
+| [might=possible, no near-synonyms estimation](prediction_model_no-synonyms-might-possible-shared.html)  | 0.939 | 0.945 | -54 | -36 |
+
+## Threshold distributions
+
+```{r setup, include=FALSE}
+
+library(data.table)
+theme_set(theme_bw())
+
+```
+
+### Comparison across expressions
+
+
+```{r threshold_distributions, echo=FALSE, fig.width=10, fig.height=6}
+
+  
+all_modals = c("bare", "might",  "could",  "probably",   "bare_not", "other", "possible", "likely")
+modals_labels = c("bare", "might",  "could",   "probably",  "bare not", "other",  "possible", "likely")
+colscale = scale_color_manual(
+  limits = all_modals,
+  values = c(
+  "#E6AB02",
+  "#7CB637",
+  "#4C3B4D",
+  "#4381C1",
+  "#FB3640",
+  "#999999",
+  "#9555A6",
+  "#2BE5F6"
+  )
+  )
+
+colscale_fill = scale_fill_manual(
+  limits = all_modals,
+  values = c(
+  "#E6AB02",
+  "#7CB637",
+  "#4C3B4D",
+  "#4381C1",
+  "#FB3640",
+  "#999999",
+  "#9555A6",
+  "#2BE5F6"
+  )
+  )
+
+
+
+models = c("full", "full, no near-syn", "classic semantics", "classic semantic, no near-syn", "might=possible", "might=possible, no-near syn", "dissertation")
+model_dirs = c("./runs/threshold-model-expected/", "./runs/no-near-synonyms/", "./runs/classic-semantics/", "./runs/no-near-synonyms-classic-semantics/", "./runs/possible-might-shared-semantics/", "./runs/no-near-synonyms-possible-might-shared-semantics/", "../../../adaptation/models/1_threshold_modals/runs/threshold-model-expected/")
+
+d = data.table()
+modals = c("bare", "might", "probably", "could", "possible", "likely", "bare_not")
+
+
+for (i in 1:7) {
+
+  model = models[i]
+  model_dir = model_dirs[i]
+  
+  model_params_all = read.csv(paste(model_dir, "mle_params.csv", sep=""))
+
+
+for (modal in modals) {
+  alpha_param_name = paste("alpha", modal, sep="_")
+  beta_param_name = paste("beta", modal, sep="_")
+  
+  alpha_param = model_params_all[1,alpha_param_name]
+  beta_param = model_params_all[1,beta_param_name]
+  
+  if (is.null(alpha_param)) {
+    next
+  }
+
+  alpha_param_low = model_params_all[2,alpha_param_name]
+  beta_param_low = model_params_all[2,beta_param_name]
+
+  alpha_param_high = model_params_all[3,alpha_param_name]
+  beta_param_high = model_params_all[3,beta_param_name]
+
+      
+  x = seq(0.001,0.999,.001)
+  y = pbeta(x, alpha_param, beta_param)
+  if (!is.null(alpha_param_low)) {
+    y_low = pbeta(x, alpha_param_low, beta_param_low)
+    y_high = pbeta(x, alpha_param_high, beta_param_high)
+  } else {
+    y_low = y
+    y_high = y
+  }
+
+  
+  beta_density = data.frame(x = x, y = y, y_low = y_low, y_high=y_high, modal = modal, model=model)
+  d = rbind(d, beta_density)
+  
+}
+  
+   
+}
+
+
+   d_filtered = d %>% filter(modal %in% c("might", "possible", "could"))
+   d_filtered %>%
+    ggplot( aes(x=x, y=y, col=modal)) + 
+     geom_ribbon(aes(ymin=y_low, ymax=y_high, fill=modal), alpha=.4, size=0) +
+     geom_line() + 
+     ggtitle("might-possible-could") + 
+     facet_wrap(~model, ncol=3) +
+     colscale +
+     colscale_fill +
+     xlab("percentage") + 
+     theme(legend.position = "bottom")
+
+   d %>% filter(modal %in% c("probably", "likely")) %>%
+    ggplot( aes(x=x, y=y, col=modal)) + 
+     geom_ribbon(aes(ymin=y_low, ymax=y_high, fill=modal), alpha=.4, size=0) +
+     geom_line() + 
+     ggtitle("probably-likely") + 
+     facet_wrap(~model, ncol = 3) +
+     colscale +
+     colscale_fill +
+     xlab("percentage") + 
+     theme(legend.position = "bottom")
+```
+
+### Comparison across models
+
+```{r threshold_distributions2, echo=FALSE, fig.width=10, fig.height=6}
+   
+   d %>% filter(model %in% c("full", "classic semantics", "might=possible", "dissertation")) %>% 
+     ggplot( aes(x=x, y=y, col=model)) + 
+     geom_line() + 
+     ggtitle("all data") +
+     facet_wrap(~modal, nrow = 2) +
+     xlab("percentage") + 
+     theme(legend.position = "bottom") 
+     
+
+ d %>% filter(!(model %in% c("full", "classic semantics", "might=possible"))) %>% 
+     ggplot( aes(x=x, y=y, col=model)) + 
+     geom_line() + 
+     facet_wrap(~modal, nrow = 2) +
+     ggtitle("no near-synonym data") +
+     xlab("percentage") + 
+     theme(legend.position = "bottom")
+
+```
+
+
+
