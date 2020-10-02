@@ -1,9 +1,10 @@
 ---
-title: "might-possible-could models (no near-synonyms)"
+title: "might-possible-could models (no near-synonyms, shared semantics for might and possible)"
 author: "Sebastian Schuster"
 date: "9/16/2020"
 output: html_document
 ---
+
 
 **Parameters estimated from**: Data from all conditions except: 
 
@@ -16,16 +17,17 @@ output: html_document
 
  - *bare*
  - *bare not*
- - *might*
- - *could*
+ - *might*/*possible*
  - *possible*
  - *probably*
  - *likely*
 
 
+
+
 ````{r setup, include=FALSE}
 
-MODEL_OUTPUT_PATH = "./runs/no-near-synonyms/"
+MODEL_OUTPUT_PATH = "./runs/no-near-synonyms-possible-might-shared-semantics//"
 
 
 ```
