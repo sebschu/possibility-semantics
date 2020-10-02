@@ -35,6 +35,7 @@ models/3_comprehension_model/bayesian-runs-balanced/**/run*
 models/3_comprehension_model/bayesian-runs-balanced/**/likelihood*
 models/3_comprehension_model/bayesian-runs-balanced/**/hdi_samples*
 
+__pycache__
 
 ### output of bayesian runs
 
