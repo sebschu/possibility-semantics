@@ -3,6 +3,8 @@ title: "might-possible-probably norming experiment"
 output: html_document
 ---
 
+With gumball machines with only one or two gumballs of the target color (to simulate the "desparate" scenario).
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
@@ -38,6 +40,10 @@ plot_condition_from_file = function(fname) {
 
 d = read.csv(fname) %>%   
   mutate(percentage_blue=ifelse(color == "blue", percentage_blue, 100-percentage_blue)) %>%
+  mutate(percentage_blue=ifelse(percentage_blue == 6, 7, percentage_blue)) %>%
+  mutate(percentage_blue=ifelse(percentage_blue == 3, 4, percentage_blue)) %>%
+  mutate(percentage_blue=ifelse(percentage_blue == 94, 93, percentage_blue)) %>%
+  mutate(percentage_blue=ifelse(percentage_blue == 97, 96, percentage_blue)) %>%
   mutate(modal = factor(modal, levels=modals, labels = modals_labels, ordered = T))
 
 
@@ -48,10 +54,11 @@ p = d %>%
             ci_high=ci.high(rating)) %>%
   ggplot(aes(x=percentage_blue, y=rating_m, group=modal, col=modal)) + 
     geom_point(aes(col=modal), size=1) + geom_line(size=1) + xlab("percentage") + 
-    geom_errorbar(aes(ymin=rating_m-ci_low, ymax=rating_m+ci_high), width=5, size=1) + 
+    geom_errorbar(aes(ymin=rating_m-ci_low, ymax=rating_m+ci_high), width=3, size=.65) + 
     ylab("mean rating") + 
     facet_wrap(~expressions) +
     colscale + 
+    ylim(0,1) + 
     guides(col=guide_legend(title="Expression", nrow = 3)) + 
     theme(legend.position="bottom", legend.text=element_text(size=14))
 
@@ -62,12 +69,22 @@ return(list("p"=p, "d"=d))
 ```
 
 
+```{r fig.width=6, fig.height=5, echo=FALSE, fig.align="center"}
+
+
+ps = plot_condition_from_file("../data/15_possible-might-probably_norming-desparate-merged.csv")
+
+plot(ps$p + theme(legend.position = "none"))
+
+
+```
+
 ```{r fig.width=6, fig.height=6, echo=FALSE, fig.align="center"}
 
+ps2 = plot_condition_from_file("../../14_possible-might-probably_norming/data/14_posssible-might-could_norming-merged.csv")
 
-ps = plot_condition_from_file("../data/14_posssible-might-could_norming-merged.csv")
+plot(ps2$p + ggtitle("Previous experiment"))
 
-plot(ps$p)
 
 ```
 
