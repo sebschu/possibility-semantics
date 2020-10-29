@@ -1,0 +1,95 @@
+---
+title: "might-possible-probably norming experiment"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r packages, include=FALSE}
+
+library(tidyverse)
+
+theme_set(theme_bw())
+
+modals = c("bare", "might",  "could", "think",  "probably",  "looks_like", "bare_not", "other", "possible", "likely")
+modals_labels = c("bare", "might",  "could", "think",  "probably",  "looks like", "bare not", "other",  "possible", "likely")
+colscale = scale_color_manual(
+  limits = modals_labels,
+  values = c(
+  "#E6AB02",
+  "#7CB637",
+  "#4C3B4D",
+  "#E7298A",
+  "#4381C1",
+  "#08415C",
+  "#FB3640",
+  "#999999",
+  "#9555A6",
+  "#2BE5F6"
+  )
+  )
+```
+
+```{r data, echo=FALSE}
+
+plot_condition_from_file = function(fname) {
+
+d = read.csv(fname) %>%   
+  mutate(percentage_blue=ifelse(color == "blue", percentage_blue, 100-percentage_blue)) %>%
+  mutate(modal = factor(modal, levels=modals, labels = modals_labels, ordered = T))
+
+
+p = d %>%
+  group_by(modal, percentage_blue, expressions) %>% 
+  summarise(rating_m = mean(rating), 
+            ci_low=ci.low(rating), 
+            ci_high=ci.high(rating)) %>%
+  ggplot(aes(x=percentage_blue, y=rating_m, group=modal, col=modal)) + 
+    geom_point(aes(col=modal), size=1) + geom_line(size=1) + xlab("percentage") + 
+    geom_errorbar(aes(ymin=rating_m-ci_low, ymax=rating_m+ci_high), width=5, size=1) + 
+    ylab("mean rating") + 
+    facet_wrap(~expressions) +
+    colscale + 
+    guides(col=guide_legend(title="Expression", nrow = 3)) + 
+    theme(legend.position="bottom", legend.text=element_text(size=14))
+
+return(list("p"=p, "d"=d))
+
+}
+
+```
+
+
+```{r fig.width=6, fig.height=6, echo=FALSE, fig.align="center"}
+
+
+ps = plot_condition_from_file("../data/14_posssible-might-could_norming-merged.csv")
+
+plot(ps$p)
+
+```
+
+
+```{r echo=FALSE, fig.width=10, fig.height=13.125}
+
+participant_plot = ggplot(ps$d %>% 
+                            group_by(modal,percentage_blue, workerid) %>% 
+                            summarise(rating_m = mean(rating)), 
+                          aes(x=percentage_blue/100, y=rating_m, group=modal, col=modal)) + 
+  geom_point(aes(col=modal), size=1) + 
+  geom_line(size=1) + 
+  xlab("event probability") + 
+  ylab("utterance rating") + 
+  facet_wrap(~workerid, ncol=7) + 
+  colscale +
+  guides(col=guide_legend(title="Expression", nrow = 3)) + 
+  theme(legend.position="bottom", legend.text=element_text(size=14))
+  
+
+plot(participant_plot)
+
+
+
+```
